@@ -33,7 +33,7 @@ def opts_for(url, **extra):
         "quiet": True,
         "no_warnings": True,
         "socket_timeout": 30,
-        "format": "best[ext=mp4]/best",  # FFmpeg gerektirmeyen tek dosya format
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
     }
     u = url.lower()
     if "twitter.com" in u or "x.com" in u or "twimg.com" in u:
@@ -128,7 +128,7 @@ def download(url: str, height: str, title: str = "video"):
         ext, mime = "m4a", "audio/mp4"
     else:
         h = int(height)
-        dl_opts = opts_for(url, format=f"best[height<={h}][ext=mp4]/best[height<={h}]/best", outtmpl=out)
+        dl_opts = opts_for(url, format=f"bestvideo[height<={h}][ext=mp4]+bestaudio[ext=m4a]/best[height<={h}][ext=mp4]/best[height<={h}]/best", outtmpl=out, merge_output_format="mp4")
         ext, mime = "mp4", "video/mp4"
 
     try:
