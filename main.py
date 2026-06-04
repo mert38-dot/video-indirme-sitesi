@@ -8,6 +8,20 @@ from pathlib import Path
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Cookie dosyasını env var'dan oluştur (YouTube için)
+_COOKIE_FILE = None
+def cookie_file():
+    global _COOKIE_FILE
+    if _COOKIE_FILE and os.path.exists(_COOKIE_FILE):
+        return _COOKIE_FILE
+    content = os.environ.get("YT_COOKIES", "")
+    if content:
+        f = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        f.write(content)
+        f.close()
+        _COOKIE_FILE = f.name
+    return _COOKIE_FILE
+
 
 class AnalyzeReq(BaseModel):
     url: str
@@ -22,6 +36,9 @@ def opts_for(url, **extra):
     elif "youtube.com" in u or "youtu.be" in u:
         base["extractor_args"] = {"youtube": {"player_client": ["mweb"]}}
     # TikTok ve Instagram: varsayılan ayarlar yeterli
+    cf = cookie_file()
+    if cf:
+        base["cookiefile"] = cf
     base.update(extra)
     return base
 
