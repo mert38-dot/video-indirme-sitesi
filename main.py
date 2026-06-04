@@ -40,6 +40,9 @@ def opts_for(url, **extra):
         "no_warnings": True,
         "socket_timeout": 30,
         "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "concurrent_fragment_downloads": 5,
+        "buffersize": 1024 * 64,
+        "http_chunk_size": 1024 * 1024 * 10,
     }
     u = url.lower()
     if "twitter.com" in u or "x.com" in u or "twimg.com" in u:
