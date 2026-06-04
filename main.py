@@ -8,25 +8,21 @@ from pathlib import Path
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Cookie dosyasını env var'dan oluştur (YouTube için)
-_COOKIE_FILE = None
-def cookie_file():
-    global _COOKIE_FILE
-    if _COOKIE_FILE and os.path.exists(_COOKIE_FILE):
-        return _COOKIE_FILE
+# Cookie'yi uygulama başlarken yaz
+def _write_cookies():
     raw = os.environ.get("YT_COOKIES", "")
     if not raw:
         return None
-    # Satır sonlarını normalize et, boş satırları temizle
-    lines = [l.rstrip() for l in raw.splitlines()]
-    content = "\n".join(lines) + "\n"
-    if "Netscape HTTP Cookie File" not in content:
-        return None
-    f = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
-    f.write(content)
-    f.close()
-    _COOKIE_FILE = f.name
-    return _COOKIE_FILE
+    path = "/tmp/videoget_cookies.txt"
+    lines = [l.rstrip("\r\n") for l in raw.splitlines()]
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    return path
+
+COOKIE_FILE = _write_cookies()
+
+def cookie_file():
+    return COOKIE_FILE
 
 
 class AnalyzeReq(BaseModel):
