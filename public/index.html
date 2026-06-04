@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VideoGet</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d0d0d;color:#e8e8e8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:100%;max-width:580px}
+h1{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#fff 30%,#555);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.sub{color:#555;font-size:.88rem;margin-bottom:36px}
+.row{display:flex;gap:8px;margin-bottom:20px}
+input{flex:1;padding:14px 18px;background:#161616;border:1.5px solid #222;border-radius:14px;color:#e8e8e8;font-size:.95rem;outline:none;transition:border-color .2s}
+input:focus{border-color:#3a3a3a}
+input::placeholder{color:#3a3a3a}
+.btn{padding:14px 22px;background:#fff;color:#000;border:none;border-radius:14px;font-weight:700;font-size:.9rem;cursor:pointer;transition:opacity .2s;white-space:nowrap}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.err{color:#f87171;font-size:.84rem;margin-bottom:18px;padding:13px 16px;background:#180a0a;border:1px solid #3b1515;border-radius:10px;display:none}
+.result{background:#161616;border:1.5px solid #222;border-radius:18px;overflow:hidden;display:none}
+.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#111}
+.info{padding:20px}
+.vtitle{font-weight:600;font-size:.93rem;line-height:1.5;margin-bottom:18px;color:#ddd}
+.fmts{display:flex;flex-direction:column;gap:8px}
+.fmt{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:#111;border:1.5px solid #222;border-radius:12px;color:inherit;text-decoration:none;transition:border-color .2s,background .2s;cursor:pointer}
+.fmt:hover{border-color:#444;background:#181818}
+.fmt[aria-busy=true]{opacity:.5;pointer-events:none}
+.fmt-left{display:flex;align-items:center;gap:10px}
+.fmt-label{font-weight:700;font-size:.9rem}
+.badge{font-size:.68rem;font-weight:700;padding:3px 7px;border-radius:5px}
+.bv{background:#0d1f0d;color:#4ade80;border:1px solid #1a3a1a}
+.ba{background:#0d0d1f;color:#818cf8;border:1px solid #1a1a3a}
+.fmt-right{display:flex;align-items:center;gap:8px}
+.fmt-size{color:#555;font-size:.8rem}
+.fmt-dl{color:#444;font-size:1rem}
+.loading{text-align:center;padding:44px;color:#444}
+.spin{width:30px;height:30px;border:2px solid #222;border-top-color:#aaa;border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.note{color:#444;font-size:.74rem;margin-top:14px;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>VideoGet</h1>
+  <p class="sub">YouTube · TikTok · Twitter · Instagram · ve daha fazlası</p>
+  <div class="row">
+    <input id="url" type="url" placeholder="Video linkini buraya yapıştırın…" autocomplete="off" spellcheck="false">
+    <button class="btn" id="btn" onclick="analyze()">Analiz Et</button>
+  </div>
+  <div class="err" id="err"></div>
+  <div class="result" id="result"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+let CURRENT={title:'video',formats:[]};
+
+async function analyze(){
+  const url=$('url').value.trim();
+  if(!url)return;
+  setErr('');
+  $('btn').disabled=true;
+  show('result',true);
+  $('result').innerHTML='<div class="loading"><div class="spin"></div>Video analiz ediliyor…</div>';
+
+  try{
+    const r=await fetch('/api/analyze',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url}),
+      signal:AbortSignal.timeout(45000)
+    });
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Bilinmeyen hata');
+    CURRENT=d;
+    render(d);
+  }catch(e){
+    show('result',false);
+    setErr(e.name==='TimeoutError'?'Bağlantı zaman aşımına uğradı. Tekrar deneyin.':e.message);
+  }finally{
+    $('btn').disabled=false;
+  }
+}
+
+function render(d){
+  const fmts=d.formats.map((f,i)=>`
+    <div class="fmt" onclick="dl(${i},this)">
+      <span class="fmt-left">
+        <span class="fmt-label">${esc(f.label)}</span>
+        <span class="badge ${f.type==='audio'?'ba':'bv'}">${f.type==='audio'?'AUDIO':'VIDEO'}</span>
+      </span>
+      <span class="fmt-right">
+        <span class="fmt-size">${esc(f.size)}</span>
+        <span class="fmt-dl">↓</span>
+      </span>
+    </div>`).join('');
+
+  $('result').innerHTML=`
+    ${d.thumbnail?`<img class="thumb" src="${esc(d.thumbnail)}" alt="" loading="lazy" onerror="this.style.display='none'">`:''}
+    <div class="info">
+      <div class="vtitle">${esc(d.title)}</div>
+      <div class="fmts">${fmts}</div>
+      <div class="note">İndirme başlamazsa video yeni sekmede açılır → sağ tık → "Videoyu farklı kaydet".</div>
+    </div>`;
+}
+
+// CDN linki cross-origin olduğu için önce blob ile zorla indirmeyi dener,
+// CORS engellerse yeni sekmede açar (kullanıcı manuel kaydeder).
+async function dl(i,el){
+  const f=CURRENT.formats[i];
+  const name=safeName(CURRENT.title)+'.'+(f.ext||'mp4');
+  el.setAttribute('aria-busy','true');
+  try{
+    const res=await fetch(f.url,{signal:AbortSignal.timeout(120000)});
+    if(!res.ok)throw 0;
+    const blob=await res.blob();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=name;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }catch(_){
+    window.open(f.url,'_blank');
+  }finally{
+    el.removeAttribute('aria-busy');
+  }
+}
+
+function safeName(s){return (String(s).replace(/[^\w\s\-]/g,'').trim().slice(0,60))||'video';}
+function setErr(msg){const e=$('err');e.style.display=msg?'block':'none';e.textContent=msg;}
+function show(id,v){$(id).style.display=v?'block':'none';}
+$('url').addEventListener('keydown',e=>e.key==='Enter'&&analyze());
+</script>
+</body>
+</html>
