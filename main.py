@@ -34,7 +34,7 @@ def opts_for(url, **extra):
     if "twitter.com" in u or "x.com" in u or "twimg.com" in u:
         base["extractor_args"] = {"twitter": {"api": ["syndication"]}}
     elif "youtube.com" in u or "youtu.be" in u:
-        base["extractor_args"] = {"youtube": {"player_client": ["mweb"]}}
+        pass  # cookie varsa default client yeterli
     # TikTok ve Instagram: varsayılan ayarlar yeterli
     cf = cookie_file()
     if cf:
