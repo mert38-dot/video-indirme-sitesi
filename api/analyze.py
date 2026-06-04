@@ -2,13 +2,10 @@ from http.server import BaseHTTPRequestHandler
 import json, re
 import yt_dlp
 
-URL_RE = re.compile(r'^https?://.+\..{2,}', re.I)
-
-
 def build(url):
     url = (url or "").strip()
-    if not URL_RE.match(url):
-        return 400, {"detail": "Geçersiz URL formatı. https:// ile başlayan tam bir link girin."}
+    if not url.startswith("http"):
+        return 400, {"detail": "Geçersiz URL. https:// ile başlayan tam bir link girin."}
 
     opts = {"quiet": True, "no_warnings": True, "skip_download": True, "socket_timeout": 20}
     try:
