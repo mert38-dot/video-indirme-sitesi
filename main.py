@@ -14,12 +14,18 @@ def cookie_file():
     global _COOKIE_FILE
     if _COOKIE_FILE and os.path.exists(_COOKIE_FILE):
         return _COOKIE_FILE
-    content = os.environ.get("YT_COOKIES", "").replace("\r\n", "\n").replace("\r", "\n")
-    if content:
-        f = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, newline="\n")
-        f.write(content)
-        f.close()
-        _COOKIE_FILE = f.name
+    raw = os.environ.get("YT_COOKIES", "")
+    if not raw:
+        return None
+    # Satır sonlarını normalize et, boş satırları temizle
+    lines = [l.rstrip() for l in raw.splitlines()]
+    content = "\n".join(lines) + "\n"
+    if "Netscape HTTP Cookie File" not in content:
+        return None
+    f = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+    f.write(content)
+    f.close()
+    _COOKIE_FILE = f.name
     return _COOKIE_FILE
 
 
