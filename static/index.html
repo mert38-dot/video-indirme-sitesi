@@ -263,22 +263,23 @@ input::placeholder{color:#2e2e4e}
   40%{opacity:.7;transform:translateY(0)}
 }
 
-/* İndirme animasyonu */
-@keyframes dlPulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,.4)}
-  50%{box-shadow:0 0 0 8px rgba(167,139,250,0)}
+/* İndirme spinner — uiverse dominos */
+.spinner{position:relative;width:60px;height:60px;display:flex;justify-content:center;align-items:center;border-radius:50%}
+.spinner span{position:absolute;top:50%;left:var(--left);width:35px;height:7px;background:#fff;animation:dominos 1s ease infinite;box-shadow:2px 2px 3px 0px black}
+.spinner span:nth-child(1){--left:80px;animation-delay:.125s}
+.spinner span:nth-child(2){--left:70px;animation-delay:.3s}
+.spinner span:nth-child(3){left:60px;animation-delay:.425s}
+.spinner span:nth-child(4){animation-delay:.54s;left:50px}
+.spinner span:nth-child(5){animation-delay:.665s;left:40px}
+.spinner span:nth-child(6){animation-delay:.79s;left:30px}
+.spinner span:nth-child(7){animation-delay:.915s;left:20px}
+.spinner span:nth-child(8){left:10px}
+@keyframes dominos{
+  50%{opacity:.7}
+  75%{transform:rotate(90deg)}
+  80%{opacity:1}
 }
-.fmt[aria-busy=true]::after{
-  content:'';
-  position:absolute;
-  inset:0;
-  background:linear-gradient(90deg,transparent,rgba(167,139,250,.1),transparent);
-  animation:sweep 1.5s linear infinite;
-}
-@keyframes sweep{
-  from{transform:translateX(-100%)}
-  to{transform:translateX(100%)}
-}
+.fmt[aria-busy=true]::before{opacity:1}
 </style>
 </head>
 <body>
@@ -381,16 +382,12 @@ function render(d){
 function startDl(e,i,el){
   if(el.dataset.busy){e.preventDefault();return;}
   el.dataset.busy='1';
-  const dl=el.querySelector('.fmt-dl');
-  const sz=el.querySelector('.fmt-size');
-  const origDl=dl.textContent;
-  const origSz=sz.textContent;
-  dl.textContent='⏳';
-  sz.textContent='İndiriliyor…';
+  const right=el.querySelector('.fmt-right');
+  const origHTML=right.innerHTML;
+  right.innerHTML=`<div class="spinner"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>`;
   el.setAttribute('aria-busy','true');
   setTimeout(()=>{
-    dl.textContent=origDl;
-    sz.textContent=origSz;
+    right.innerHTML=origHTML;
     el.removeAttribute('aria-busy');
     delete el.dataset.busy;
   },10000);
