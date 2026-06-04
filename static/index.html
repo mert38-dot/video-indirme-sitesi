@@ -263,23 +263,32 @@ input::placeholder{color:#2e2e4e}
   40%{opacity:.7;transform:translateY(0)}
 }
 
-/* İndirme spinner — uiverse dominos */
-.spinner{position:relative;width:60px;height:60px;display:flex;justify-content:center;align-items:center;border-radius:50%}
-.spinner span{position:absolute;top:50%;left:var(--left);width:35px;height:7px;background:#fff;animation:dominos 1s ease infinite;box-shadow:2px 2px 3px 0px black}
-.spinner span:nth-child(1){--left:80px;animation-delay:.125s}
-.spinner span:nth-child(2){--left:70px;animation-delay:.3s}
-.spinner span:nth-child(3){left:60px;animation-delay:.425s}
-.spinner span:nth-child(4){animation-delay:.54s;left:50px}
-.spinner span:nth-child(5){animation-delay:.665s;left:40px}
-.spinner span:nth-child(6){animation-delay:.79s;left:30px}
-.spinner span:nth-child(7){animation-delay:.915s;left:20px}
-.spinner span:nth-child(8){left:10px}
-@keyframes dominos{
-  50%{opacity:.7}
-  75%{transform:rotate(90deg)}
-  80%{opacity:1}
+/* İndirme loader — uiverse alexruix (mavi) */
+.dl-loader{width:80px;height:50px;position:relative;flex-shrink:0}
+.dl-loader .loader-text{position:absolute;top:0;padding:0;margin:0;color:#60a5fa;animation:text_713 3.5s ease both infinite;font-size:.75rem;letter-spacing:1px;white-space:nowrap}
+.dl-loader .load{background-color:#3b82f6;border-radius:50px;display:block;height:16px;width:16px;bottom:0;position:absolute;transform:translateX(64px);animation:loading_713 3.5s ease both infinite}
+.dl-loader .load::before{position:absolute;content:"";width:100%;height:100%;background-color:#93c5fd;border-radius:inherit;animation:loading2_713 3.5s ease both infinite}
+@keyframes text_713{
+  0%{letter-spacing:1px;transform:translateX(0)}
+  40%{letter-spacing:2px;transform:translateX(26px)}
+  80%{letter-spacing:1px;transform:translateX(32px)}
+  90%{letter-spacing:2px;transform:translateX(0)}
+  100%{letter-spacing:1px;transform:translateX(0)}
 }
-.fmt[aria-busy=true]::before{opacity:1}
+@keyframes loading_713{
+  0%{width:16px;transform:translateX(0)}
+  40%{width:100%;transform:translateX(0)}
+  80%{width:16px;transform:translateX(64px)}
+  90%{width:100%;transform:translateX(0)}
+  100%{width:16px;transform:translateX(0)}
+}
+@keyframes loading2_713{
+  0%{transform:translateX(0);width:16px}
+  40%{transform:translateX(0%);width:80%}
+  80%{width:100%;transform:translateX(0)}
+  90%{width:80%;transform:translateX(15px)}
+  100%{transform:translateX(0);width:16px}
+}
 </style>
 </head>
 <body>
@@ -384,7 +393,7 @@ function startDl(e,i,el){
   el.dataset.busy='1';
   const right=el.querySelector('.fmt-right');
   const origHTML=right.innerHTML;
-  right.innerHTML=`<div class="spinner"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>`;
+  right.innerHTML=`<div class="dl-loader"><p class="loader-text">İndiriyor</p><span class="load"></span></div>`;
   el.setAttribute('aria-busy','true');
   setTimeout(()=>{
     right.innerHTML=origHTML;
