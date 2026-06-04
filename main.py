@@ -32,7 +32,10 @@ def ydl(**kw):
         "quiet": True,
         "no_warnings": True,
         "socket_timeout": 30,
-        "extractor_args": {"twitter": {"api": ["syndication"]}},
+        "extractor_args": {
+            "twitter": {"api": ["syndication"]},
+            "youtube": {"player_client": ["tv_embedded", "web_embedded"]},
+        },
     }
     cf = _cookie_file()
     if cf:
