@@ -6,54 +6,325 @@
 <title>VideoGet</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d0d0d;color:#e8e8e8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.card{width:100%;max-width:580px}
-h1{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#fff 30%,#555);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
-.sub{color:#555;font-size:.88rem;margin-bottom:36px}
-.row{display:flex;gap:8px;margin-bottom:20px}
-input{flex:1;padding:14px 18px;background:#161616;border:1.5px solid #222;border-radius:14px;color:#e8e8e8;font-size:.95rem;outline:none;transition:border-color .2s}
-input:focus{border-color:#3a3a3a}
-input::placeholder{color:#3a3a3a}
-.btn{padding:14px 22px;background:#fff;color:#000;border:none;border-radius:14px;font-weight:700;font-size:.9rem;cursor:pointer;transition:opacity .2s;white-space:nowrap}
-.btn:hover{opacity:.88}
-.btn:disabled{opacity:.35;cursor:not-allowed}
-.err{color:#f87171;font-size:.84rem;margin-bottom:18px;padding:13px 16px;background:#180a0a;border:1px solid #3b1515;border-radius:10px;display:none}
-.result{background:#161616;border:1.5px solid #222;border-radius:18px;overflow:hidden;display:none}
-.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#111}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#080810;
+  color:#e8e8e8;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  overflow-x:hidden;
+}
+
+/* Arka plan partikülleri */
+.bg{position:fixed;inset:0;pointer-events:none;z-index:0}
+.dot{position:absolute;border-radius:50%;animation:float linear infinite;opacity:0}
+@keyframes float{
+  0%{transform:translateY(100vh) scale(0);opacity:0}
+  10%{opacity:.6}
+  90%{opacity:.3}
+  100%{transform:translateY(-100px) scale(1);opacity:0}
+}
+
+.card{
+  width:100%;
+  max-width:600px;
+  position:relative;
+  z-index:1;
+  animation:slideUp .6s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes slideUp{
+  from{opacity:0;transform:translateY(40px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* Logo */
+.logo{
+  text-align:center;
+  margin-bottom:40px;
+}
+.logo h1{
+  font-size:3rem;
+  font-weight:900;
+  letter-spacing:-.05em;
+  background:linear-gradient(135deg,#fff 0%,#a78bfa 50%,#60a5fa 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:shimmer 3s ease-in-out infinite;
+  background-size:200%;
+}
+@keyframes shimmer{
+  0%,100%{background-position:0%}
+  50%{background-position:100%}
+}
+.logo .sub{
+  color:#4a4a6a;
+  font-size:.85rem;
+  margin-top:6px;
+  letter-spacing:.05em;
+}
+
+/* Input alanı */
+.input-wrap{
+  position:relative;
+  margin-bottom:16px;
+  animation:slideUp .6s .1s cubic-bezier(.16,1,.3,1) both;
+}
+.input-glow{
+  position:absolute;
+  inset:-2px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#a78bfa,#60a5fa,#34d399);
+  opacity:0;
+  transition:opacity .3s;
+  z-index:0;
+  filter:blur(6px);
+}
+.input-wrap:focus-within .input-glow{opacity:.5}
+.row{display:flex;gap:8px;position:relative;z-index:1}
+input{
+  flex:1;
+  padding:15px 20px;
+  background:#0f0f1a;
+  border:1.5px solid #1e1e2e;
+  border-radius:14px;
+  color:#e8e8e8;
+  font-size:.95rem;
+  outline:none;
+  transition:border-color .3s,background .3s;
+}
+input:focus{border-color:#a78bfa;background:#12122a}
+input::placeholder{color:#2e2e4e}
+
+.btn{
+  padding:15px 24px;
+  background:linear-gradient(135deg,#a78bfa,#60a5fa);
+  color:#fff;
+  border:none;
+  border-radius:14px;
+  font-weight:700;
+  font-size:.9rem;
+  cursor:pointer;
+  transition:transform .2s,box-shadow .2s,opacity .2s;
+  white-space:nowrap;
+  position:relative;
+  overflow:hidden;
+}
+.btn::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.2),transparent);
+  opacity:0;
+  transition:opacity .2s;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(167,139,250,.4)}
+.btn:hover::after{opacity:1}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* Hata */
+.err{
+  color:#f87171;
+  font-size:.84rem;
+  margin-bottom:16px;
+  padding:13px 16px;
+  background:rgba(248,113,113,.1);
+  border:1px solid rgba(248,113,113,.2);
+  border-radius:12px;
+  display:none;
+  animation:shake .4s cubic-bezier(.36,.07,.19,.97);
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%,60%{transform:translateX(-8px)}
+  40%,80%{transform:translateX(8px)}
+}
+
+/* Sonuç kartı */
+.result{
+  background:linear-gradient(135deg,#0f0f1a,#12122a);
+  border:1.5px solid #1e1e35;
+  border-radius:20px;
+  overflow:hidden;
+  display:none;
+  animation:cardIn .5s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes cardIn{
+  from{opacity:0;transform:scale(.96) translateY(20px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+
+.thumb-wrap{position:relative;overflow:hidden}
+.thumb{
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+  display:block;
+  transition:transform .4s;
+}
+.thumb-wrap:hover .thumb{transform:scale(1.03)}
+.thumb-overlay{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to bottom,transparent 50%,#0f0f1a);
+}
+
 .info{padding:20px}
-.vtitle{font-weight:600;font-size:.93rem;line-height:1.5;margin-bottom:18px;color:#ddd}
+.vtitle{
+  font-weight:700;
+  font-size:.95rem;
+  line-height:1.5;
+  margin-bottom:18px;
+  color:#d0d0f0;
+}
+
+/* Format butonları */
 .fmts{display:flex;flex-direction:column;gap:8px}
-.fmt{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:#111;border:1.5px solid #222;border-radius:12px;color:inherit;text-decoration:none;transition:border-color .2s,background .2s}
-.fmt:hover{border-color:#444;background:#181818}
-.fmt-left{display:flex;align-items:center;gap:10px}
+.fmt{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:13px 16px;
+  background:rgba(255,255,255,.03);
+  border:1.5px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  cursor:pointer;
+  transition:all .25s;
+  position:relative;
+  overflow:hidden;
+  text-decoration:none;
+  color:inherit;
+}
+.fmt::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg,rgba(167,139,250,.1),rgba(96,165,250,.1));
+  opacity:0;
+  transition:opacity .25s;
+}
+.fmt:hover{
+  border-color:rgba(167,139,250,.4);
+  transform:translateX(4px);
+  box-shadow:0 4px 20px rgba(167,139,250,.15);
+}
+.fmt:hover::before{opacity:1}
+.fmt[aria-busy=true]{opacity:.5;pointer-events:none}
+
+.fmt-left{display:flex;align-items:center;gap:10px;position:relative}
 .fmt-label{font-weight:700;font-size:.9rem}
-.badge{font-size:.68rem;font-weight:700;padding:3px 7px;border-radius:5px}
-.bv{background:#0d1f0d;color:#4ade80;border:1px solid #1a3a1a}
-.ba{background:#0d0d1f;color:#818cf8;border:1px solid #1a1a3a}
-.fmt-right{display:flex;align-items:center;gap:8px}
-.fmt-size{color:#555;font-size:.8rem}
-.fmt-dl{color:#444;font-size:1rem}
-.loading{text-align:center;padding:44px;color:#444}
-.spin{width:30px;height:30px;border:2px solid #222;border-top-color:#aaa;border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 14px}
-@keyframes spin{to{transform:rotate(360deg)}}
+.badge{
+  font-size:.65rem;
+  font-weight:800;
+  padding:3px 8px;
+  border-radius:6px;
+  letter-spacing:.05em;
+}
+.bv{background:rgba(52,211,153,.1);color:#34d399;border:1px solid rgba(52,211,153,.2)}
+.ba{background:rgba(167,139,250,.1);color:#a78bfa;border:1px solid rgba(167,139,250,.2)}
+
+.fmt-right{display:flex;align-items:center;gap:10px;position:relative}
+.fmt-size{color:#3a3a5a;font-size:.78rem}
+.fmt-dl{
+  width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.05);
+  border-radius:8px;
+  font-size:.9rem;
+  transition:background .2s,transform .2s;
+}
+.fmt:hover .fmt-dl{background:rgba(167,139,250,.2);transform:translateY(2px)}
+
+/* Loading */
+.loading{text-align:center;padding:50px;color:#3a3a5a}
+.spin-wrap{
+  width:48px;height:48px;
+  margin:0 auto 16px;
+  position:relative;
+}
+.spin-wrap::before,.spin-wrap::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  border:2px solid transparent;
+  animation:spinRing 1s linear infinite;
+}
+.spin-wrap::before{border-top-color:#a78bfa;animation-duration:1s}
+.spin-wrap::after{border-right-color:#60a5fa;animation-duration:1.5s;inset:6px}
+@keyframes spinRing{to{transform:rotate(360deg)}}
+.loading p{font-size:.9rem;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* İndirme animasyonu */
+@keyframes dlPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,.4)}
+  50%{box-shadow:0 0 0 8px rgba(167,139,250,0)}
+}
+.fmt[aria-busy=true]::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent,rgba(167,139,250,.1),transparent);
+  animation:sweep 1.5s linear infinite;
+}
+@keyframes sweep{
+  from{transform:translateX(-100%)}
+  to{transform:translateX(100%)}
+}
 </style>
 </head>
 <body>
+
+<!-- Arka plan partikülleri -->
+<div class="bg" id="bg"></div>
+
 <div class="card">
-  <h1>VideoGet</h1>
-  <p class="sub">YouTube · TikTok · Twitter · Instagram · ve daha fazlası</p>
-  <div class="row">
-    <input id="url" type="url" placeholder="Video linkini buraya yapıştırın…" autocomplete="off" spellcheck="false">
-    <button class="btn" id="btn" onclick="analyze()">Analiz Et</button>
+  <div class="logo">
+    <h1>VideoGet</h1>
+    <p class="sub">YouTube · TikTok · Twitter · Instagram · ve daha fazlası</p>
   </div>
+
+  <div class="input-wrap">
+    <div class="input-glow"></div>
+    <div class="row">
+      <input id="url" type="url" placeholder="Video linkini buraya yapıştırın…" autocomplete="off" spellcheck="false">
+      <button class="btn" id="btn" onclick="analyze()">Analiz Et</button>
+    </div>
+  </div>
+
   <div class="err" id="err"></div>
   <div class="result" id="result"></div>
 </div>
+
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const enc=s=>encodeURIComponent(s);
 let DATA={};
+
+// Arka plan partikülleri
+(function(){
+  const bg=$('bg');
+  const colors=['#a78bfa','#60a5fa','#34d399','#f472b6'];
+  for(let i=0;i<25;i++){
+    const d=document.createElement('div');
+    d.className='dot';
+    const size=Math.random()*4+2;
+    d.style.cssText=`
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${Math.random()*15+8}s;
+      animation-delay:${Math.random()*10}s;
+    `;
+    bg.appendChild(d);
+  }
+})();
 
 async function analyze(){
   const url=$('url').value.trim();
@@ -61,9 +332,15 @@ async function analyze(){
   setErr('');
   $('btn').disabled=true;
   show('result',true);
-  $('result').innerHTML='<div class="loading"><div class="spin"></div>Video analiz ediliyor…</div>';
+  $('result').innerHTML=`<div class="loading"><div class="spin-wrap"></div><p>Video analiz ediliyor…</p></div>`;
+
   try{
-    const r=await fetch('/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),signal:AbortSignal.timeout(90000)});
+    const r=await fetch('/analyze',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url}),
+      signal:AbortSignal.timeout(90000)
+    });
     const d=await r.json();
     if(!r.ok)throw new Error(d.detail||'Hata');
     DATA=d;
@@ -77,47 +354,51 @@ async function analyze(){
 }
 
 function render(d){
-  const fmts=d.formats.map(f=>`
-    <a class="fmt" href="/download?url=${enc(d.url)}&height=${enc(f.height)}&title=${enc(d.title)}" download>
+  const fmts=d.formats.map((f,i)=>`
+    <a class="fmt" href="/download?url=${enc(d.url)}&height=${enc(f.height)}&title=${enc(d.title)}" download
+       onclick="startDl(event,${i},this)">
       <span class="fmt-left">
         <span class="fmt-label">${esc(f.label)}</span>
-        <span class="badge ${f.type==='audio'?'ba':'bv'}">${f.type==='audio'?'AUDIO':'VIDEO'}</span>
+        <span class="badge ${f.type==='audio'?'ba':'bv'}">${f.type==='audio'?'SES':'VİDEO'}</span>
       </span>
       <span class="fmt-right">
-        <span class="fmt-size">${esc(f.size)}</span>
+        <span class="fmt-size">~${esc(f.size)}</span>
         <span class="fmt-dl">↓</span>
       </span>
     </a>`).join('');
+
   $('result').innerHTML=`
-    ${d.thumbnail?`<img class="thumb" src="${esc(d.thumbnail)}" alt="" loading="lazy" onerror="this.style.display='none'">`:''}
+    ${d.thumbnail?`<div class="thumb-wrap"><img class="thumb" src="${esc(d.thumbnail)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"><div class="thumb-overlay"></div></div>`:''}
     <div class="info">
       <div class="vtitle">${esc(d.title)}</div>
       <div class="fmts">${fmts}</div>
-    </div>`
-  // tıklama feedback'i bağla
-  document.querySelectorAll('.fmt').forEach(el=>{
-    el.addEventListener('click',function(e){
-      if(this.dataset.busy)return e.preventDefault();
-      this.dataset.busy='1';
-      const sz=this.querySelector('.fmt-size');
-      const dl=this.querySelector('.fmt-dl');
-      const origSz=sz.textContent;
-      sz.textContent='İndiriliyor…';
-      dl.textContent='⏳';
-      this.style.opacity='.55';
-      this.style.pointerEvents='none';
-      setTimeout(()=>{
-        sz.textContent=origSz;
-        dl.textContent='↓';
-        this.style.opacity='';
-        this.style.pointerEvents='';
-        delete this.dataset.busy;
-      },8000);
-    });
-  });
+    </div>`;
 }
 
-function setErr(m){const e=$('err');e.style.display=m?'block':'none';e.textContent=m;}
+function startDl(e,i,el){
+  if(el.dataset.busy){e.preventDefault();return;}
+  el.dataset.busy='1';
+  const dl=el.querySelector('.fmt-dl');
+  const sz=el.querySelector('.fmt-size');
+  const origDl=dl.textContent;
+  const origSz=sz.textContent;
+  dl.textContent='⏳';
+  sz.textContent='İndiriliyor…';
+  el.setAttribute('aria-busy','true');
+  setTimeout(()=>{
+    dl.textContent=origDl;
+    sz.textContent=origSz;
+    el.removeAttribute('aria-busy');
+    delete el.dataset.busy;
+  },10000);
+}
+
+function setErr(m){
+  const e=$('err');
+  e.style.display=m?'block':'none';
+  e.textContent=m;
+  if(m){e.style.animation='none';requestAnimationFrame(()=>{e.style.animation=''});}
+}
 function show(id,v){$(id).style.display=v?'block':'none';}
 $('url').addEventListener('keydown',e=>e.key==='Enter'&&analyze());
 </script>
