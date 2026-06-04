@@ -128,12 +128,20 @@ def download(url: str, height: str, title: str = "video"):
         ext, mime = "m4a", "audio/mp4"
     else:
         h = int(height)
-        dl_opts = opts_for(url, format=f"bestvideo[height<={h}][ext=mp4]+bestaudio[ext=m4a]/best[height<={h}][ext=mp4]/best[height<={h}]/best", outtmpl=out, merge_output_format="mp4")
+        dl_opts = opts_for(url, format=f"bestvideo[height<={h}]+bestaudio/best[height<={h}]/best", outtmpl=out, merge_output_format="mp4")
         ext, mime = "mp4", "video/mp4"
 
     try:
         with yt_dlp.YoutubeDL(dl_opts) as y:
             y.download([url])
+    except yt_dlp.utils.DownloadError as e:
+        # merge başarısız olduysa tek dosya ile tekrar dene
+        try:
+            fallback = opts_for(url, format=f"best[height<={h if not is_audio else 9999}]/best", outtmpl=out)
+            with yt_dlp.YoutubeDL(fallback) as y:
+                y.download([url])
+        except Exception as e2:
+            raise HTTPException(500, str(e2)[:300])
     except Exception as e:
         raise HTTPException(500, str(e)[:300])
 
