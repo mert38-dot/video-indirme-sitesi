@@ -5,6 +5,20 @@ from pydantic import BaseModel
 import yt_dlp, os, tempfile, re
 from pathlib import Path
 
+# Cookies dosyasını Railway env'den oluştur (youtube için gerekli)
+_COOKIE_FILE = None
+def _cookie_file():
+    global _COOKIE_FILE
+    if _COOKIE_FILE and os.path.exists(_COOKIE_FILE):
+        return _COOKIE_FILE
+    content = os.environ.get("YT_COOKIES", "")
+    if content:
+        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        tmp.write(content)
+        tmp.close()
+        _COOKIE_FILE = tmp.name
+    return _COOKIE_FILE
+
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -14,19 +28,17 @@ class AnalyzeReq(BaseModel):
 
 
 def ydl(**kw):
-    return {
+    opts = {
         "quiet": True,
         "no_warnings": True,
         "socket_timeout": 30,
-        "extractor_args": {
-            "twitter": {"api": ["syndication"]},
-            "youtube": {"player_client": ["ios"]},
-        },
-        "http_headers": {
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-        },
-        **kw
+        "extractor_args": {"twitter": {"api": ["syndication"]}},
     }
+    cf = _cookie_file()
+    if cf:
+        opts["cookiefile"] = cf
+    opts.update(kw)
+    return opts
 
 
 @app.get("/")
