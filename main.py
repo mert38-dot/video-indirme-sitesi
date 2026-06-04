@@ -14,7 +14,13 @@ class AnalyzeReq(BaseModel):
 
 
 def ydl(**kw):
-    return {"quiet": True, "no_warnings": True, "socket_timeout": 30, **kw}
+    return {
+        "quiet": True,
+        "no_warnings": True,
+        "socket_timeout": 30,
+        "extractor_args": {"twitter": {"api": ["syndication"]}},
+        **kw
+    }
 
 
 @app.get("/")
