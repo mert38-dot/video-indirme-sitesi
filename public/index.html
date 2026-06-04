@@ -110,11 +110,17 @@ function render(d){
 function dl(i,el){
   const f=CURRENT.formats[i];
   const ext=f.ext||'mp4';
+  const orig=el.innerHTML;
+  el.setAttribute('aria-busy','true');
+  el.querySelector('.fmt-dl').textContent='⏳';
   const proxy='/api/download?url='+enc(f.url)+'&title='+enc(CURRENT.title)+'&ext='+enc(ext);
   const a=document.createElement('a');
   a.href=proxy;
   a.download=safeName(CURRENT.title)+'.'+ext;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>{el.removeAttribute('aria-busy');el.querySelector('.fmt-dl').textContent='↓';},4000);
 }
 
 function safeName(s){return (String(s).replace(/[^\w\s\-]/g,'').trim().slice(0,60))||'video';}
