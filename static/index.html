@@ -23,9 +23,8 @@ input::placeholder{color:#3a3a3a}
 .info{padding:20px}
 .vtitle{font-weight:600;font-size:.93rem;line-height:1.5;margin-bottom:18px;color:#ddd}
 .fmts{display:flex;flex-direction:column;gap:8px}
-.fmt{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:#111;border:1.5px solid #222;border-radius:12px;color:inherit;text-decoration:none;transition:border-color .2s,background .2s;cursor:pointer}
+.fmt{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:#111;border:1.5px solid #222;border-radius:12px;color:inherit;text-decoration:none;transition:border-color .2s,background .2s}
 .fmt:hover{border-color:#444;background:#181818}
-.fmt[aria-busy=true]{opacity:.5;pointer-events:none}
 .fmt-left{display:flex;align-items:center;gap:10px}
 .fmt-label{font-weight:700;font-size:.9rem}
 .badge{font-size:.68rem;font-weight:700;padding:3px 7px;border-radius:5px}
@@ -37,7 +36,6 @@ input::placeholder{color:#3a3a3a}
 .loading{text-align:center;padding:44px;color:#444}
 .spin{width:30px;height:30px;border:2px solid #222;border-top-color:#aaa;border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 14px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.note{color:#444;font-size:.74rem;margin-top:14px;text-align:center;line-height:1.5}
 </style>
 </head>
 <body>
@@ -53,8 +51,9 @@ input::placeholder{color:#3a3a3a}
 </div>
 <script>
 const $=id=>document.getElementById(id);
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-let CURRENT={title:'video',formats:[]};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const enc=s=>encodeURIComponent(s);
+let DATA={};
 
 async function analyze(){
   const url=$('url').value.trim();
@@ -63,29 +62,23 @@ async function analyze(){
   $('btn').disabled=true;
   show('result',true);
   $('result').innerHTML='<div class="loading"><div class="spin"></div>Video analiz ediliyor…</div>';
-
   try{
-    const r=await fetch('/api/analyze',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({url}),
-      signal:AbortSignal.timeout(45000)
-    });
+    const r=await fetch('/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),signal:AbortSignal.timeout(90000)});
     const d=await r.json();
-    if(!r.ok)throw new Error(d.detail||'Bilinmeyen hata');
-    CURRENT=d;
+    if(!r.ok)throw new Error(d.detail||'Hata');
+    DATA=d;
     render(d);
   }catch(e){
     show('result',false);
-    setErr(e.name==='TimeoutError'?'Bağlantı zaman aşımına uğradı. Tekrar deneyin.':e.message);
+    setErr(e.name==='TimeoutError'?'Bağlantı zaman aşımına uğradı.':e.message);
   }finally{
     $('btn').disabled=false;
   }
 }
 
 function render(d){
-  const fmts=d.formats.map((f,i)=>`
-    <div class="fmt" onclick="dl(${i},this)">
+  const fmts=d.formats.map(f=>`
+    <a class="fmt" href="/download?url=${enc(d.url)}&height=${enc(f.height)}&title=${enc(d.title)}" download>
       <span class="fmt-left">
         <span class="fmt-label">${esc(f.label)}</span>
         <span class="badge ${f.type==='audio'?'ba':'bv'}">${f.type==='audio'?'AUDIO':'VIDEO'}</span>
@@ -94,37 +87,16 @@ function render(d){
         <span class="fmt-size">${esc(f.size)}</span>
         <span class="fmt-dl">↓</span>
       </span>
-    </div>`).join('');
-
+    </a>`).join('');
   $('result').innerHTML=`
     ${d.thumbnail?`<img class="thumb" src="${esc(d.thumbnail)}" alt="" loading="lazy" onerror="this.style.display='none'">`:''}
     <div class="info">
       <div class="vtitle">${esc(d.title)}</div>
       <div class="fmts">${fmts}</div>
-      <div class="note">İndirme başlamazsa video yeni sekmede açılır → sağ tık → "Videoyu farklı kaydet".</div>
     </div>`;
 }
 
-// CDN linki cross-origin olduğu için önce blob ile zorla indirmeyi dener,
-// CORS engellerse yeni sekmede açar (kullanıcı manuel kaydeder).
-function dl(i,el){
-  const f=CURRENT.formats[i];
-  const ext=f.ext||'mp4';
-  const orig=el.innerHTML;
-  el.setAttribute('aria-busy','true');
-  el.querySelector('.fmt-dl').textContent='⏳';
-  const proxy='/api/download?url='+enc(f.url)+'&title='+enc(CURRENT.title)+'&ext='+enc(ext);
-  const a=document.createElement('a');
-  a.href=proxy;
-  a.download=safeName(CURRENT.title)+'.'+ext;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>{el.removeAttribute('aria-busy');el.querySelector('.fmt-dl').textContent='↓';},4000);
-}
-
-function safeName(s){return (String(s).replace(/[^\w\s\-]/g,'').trim().slice(0,60))||'video';}
-function setErr(msg){const e=$('err');e.style.display=msg?'block':'none';e.textContent=msg;}
+function setErr(m){const e=$('err');e.style.display=m?'block':'none';e.textContent=m;}
 function show(id,v){$(id).style.display=v?'block':'none';}
 $('url').addEventListener('keydown',e=>e.key==='Enter'&&analyze());
 </script>
