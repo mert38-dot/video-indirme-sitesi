@@ -93,7 +93,28 @@ function render(d){
     <div class="info">
       <div class="vtitle">${esc(d.title)}</div>
       <div class="fmts">${fmts}</div>
-    </div>`;
+    </div>`
+  // tıklama feedback'i bağla
+  document.querySelectorAll('.fmt').forEach(el=>{
+    el.addEventListener('click',function(e){
+      if(this.dataset.busy)return e.preventDefault();
+      this.dataset.busy='1';
+      const sz=this.querySelector('.fmt-size');
+      const dl=this.querySelector('.fmt-dl');
+      const origSz=sz.textContent;
+      sz.textContent='İndiriliyor…';
+      dl.textContent='⏳';
+      this.style.opacity='.55';
+      this.style.pointerEvents='none';
+      setTimeout(()=>{
+        sz.textContent=origSz;
+        dl.textContent='↓';
+        this.style.opacity='';
+        this.style.pointerEvents='';
+        delete this.dataset.busy;
+      },8000);
+    });
+  });
 }
 
 function setErr(m){const e=$('err');e.style.display=m?'block':'none';e.textContent=m;}

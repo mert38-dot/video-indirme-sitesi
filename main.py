@@ -43,7 +43,20 @@ def analyze(req: AnalyzeReq):
         raise HTTPException(500, str(e)[:300])
 
     fmts = info.get("formats", [])
+
+    # progressive = video+audio birleşik (ffmpeg gerektirmez, boyut bilgisi güvenilir)
+    progressive = [f for f in fmts if f.get("vcodec","none") != "none" and f.get("acodec","none") != "none" and f.get("height")]
     audio = [f for f in fmts if f.get("acodec","none") != "none" and f.get("vcodec","none") == "none"]
+
+    # her kalite için en iyi progressive formatı bul
+    prog_by_height = {}
+    for f in progressive:
+        h = f["height"]
+        cur = prog_by_height.get(h)
+        if not cur or (f.get("filesize") or f.get("filesize_approx") or 0) > (cur.get("filesize") or cur.get("filesize_approx") or 0):
+            prog_by_height[h] = f
+
+    # progressive yoksa video-only + audio tahmini kullan
     best_audio_size = 0
     if audio:
         ba = max(audio, key=lambda x: x.get("abr") or 0)
@@ -55,9 +68,14 @@ def analyze(req: AnalyzeReq):
         if not h or f.get("vcodec","none") == "none" or h in seen:
             continue
         seen.add(h)
-        vs = f.get("filesize") or f.get("filesize_approx") or 0
-        total = vs + best_audio_size if vs else 0
-        opts.append({"label": f"{h}p", "height": h, "size": f"{total/1048576:.1f} MB" if total else "Boyut bilinmiyor", "type": "video"})
+        # progressive varsa onun boyutunu kullan, yoksa video+audio tahmini
+        pf = prog_by_height.get(h)
+        if pf:
+            s = pf.get("filesize") or pf.get("filesize_approx") or 0
+        else:
+            vs = f.get("filesize") or f.get("filesize_approx") or 0
+            s = vs + best_audio_size if vs else 0
+        opts.append({"label": f"{h}p", "height": h, "size": f"{s/1048576:.1f} MB" if s else "~boyut hesaplanamadı", "type": "video"})
         if len(opts) >= 5:
             break
 
