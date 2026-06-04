@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi import FastAPI, HTTPException, Header
+from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from typing import Optional
 import yt_dlp, os, tempfile, re
 from pathlib import Path
 
@@ -19,10 +20,66 @@ def _write_cookies():
         f.write("\n".join(lines) + "\n")
     return path
 
+COOKIE_PATH = "/tmp/videoget_cookies.txt"
 COOKIE_FILE = _write_cookies()
 
 def cookie_file():
-    return COOKIE_FILE
+    return COOKIE_FILE if COOKIE_FILE and os.path.exists(COOKIE_FILE) else None
+
+class CookieUpdate(BaseModel):
+    password: str
+    cookies: str
+
+@app.post("/admin/update-cookies")
+def update_cookies(req: CookieUpdate):
+    admin_pass = os.environ.get("ADMIN_PASSWORD", "")
+    if not admin_pass or req.password != admin_pass:
+        raise HTTPException(403, "Yanlış şifre")
+    lines = [l.rstrip("\r\n") for l in req.cookies.splitlines()]
+    content = "\n".join(lines) + "\n"
+    with open(COOKIE_PATH, "w") as f:
+        f.write(content)
+    global COOKIE_FILE
+    COOKIE_FILE = COOKIE_PATH
+    return {"ok": True, "message": "Cookie güncellendi"}
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page():
+    return """<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
+<title>Cookie Güncelle</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui;background:#0d0d0d;color:#e8e8e8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.card{width:100%;max-width:560px;background:#161616;border:1px solid #222;border-radius:16px;padding:28px}
+h2{margin-bottom:20px;font-size:1.2rem}
+label{display:block;font-size:.8rem;color:#666;margin-bottom:6px;margin-top:16px}
+input,textarea{width:100%;padding:12px;background:#111;border:1px solid #222;border-radius:10px;color:#e8e8e8;font-size:.85rem;outline:none}
+textarea{height:180px;resize:vertical;font-family:monospace;font-size:.75rem}
+button{margin-top:16px;width:100%;padding:13px;background:#fff;color:#000;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem}
+.msg{margin-top:12px;padding:10px;border-radius:8px;font-size:.85rem;display:none}
+.ok{background:#0d1f0d;color:#4ade80;border:1px solid #1a3a1a}
+.err{background:#1a0a0a;color:#f87171;border:1px solid #3a1a1a}
+</style></head><body>
+<div class="card">
+  <h2>🍪 YouTube Cookie Güncelle</h2>
+  <p style="color:#555;font-size:.82rem">cookies.txt içeriğini buraya yapıştırın. Her ~2 haftada bir yenilenmelidir.</p>
+  <label>Admin Şifre</label>
+  <input type="password" id="pw" placeholder="ADMIN_PASSWORD">
+  <label>cookies.txt içeriği</label>
+  <textarea id="ck" placeholder="# Netscape HTTP Cookie File..."></textarea>
+  <button onclick="send()">Güncelle</button>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+async function send(){
+  const r=await fetch('/admin/update-cookies',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({password:document.getElementById('pw').value,cookies:document.getElementById('ck').value})});
+  const d=await r.json();
+  const m=document.getElementById('msg');
+  m.style.display='block';
+  m.className='msg '+(r.ok?'ok':'err');
+  m.textContent=r.ok?'✅ Cookie güncellendi! Artık YouTube çalışır.':'❌ '+d.detail;
+}
+</script></body></html>"""
 
 
 class AnalyzeReq(BaseModel):
