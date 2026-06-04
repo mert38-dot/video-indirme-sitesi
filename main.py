@@ -112,20 +112,30 @@ def index():
     return FileResponse("static/index.html")
 
 
-YT_CLIENTS = ["android", "ios", "tv_embedded", "web_creator", "web"]
-
 def extract_info_yt(url, base_opts):
-    """YouTube için birden fazla client dener, ilk çalışanı döner."""
+    """YouTube için sırayla client dener. Cookie varsa web önce, sonra ios/android."""
+    has_cookie = bool(base_opts.get("cookiefile"))
+    # Cookie varsa web client'ı en başa al (en fazla format döner)
+    clients = (
+        [None, "ios", "android", "tv_embedded"] if has_cookie
+        else ["ios", "android", "tv_embedded", "web_creator"]
+    )
     last_err = None
-    for client in YT_CLIENTS:
+    for client in clients:
         try:
-            opts = {**base_opts, "extractor_args": {"youtube": {"player_client": [client]}}}
+            if client:
+                opts = {**base_opts, "extractor_args": {"youtube": {"player_client": [client]}}}
+            else:
+                opts = base_opts
             with yt_dlp.YoutubeDL(opts) as y:
-                return y.extract_info(url, download=False)
+                info = y.extract_info(url, download=False)
+            # En az 1 format varsa kabul et
+            if info.get("formats") or info.get("url"):
+                return info
         except Exception as e:
             last_err = e
             continue
-    raise last_err
+    raise last_err or Exception("YouTube formatları alınamadı")
 
 @app.post("/analyze")
 def analyze(req: AnalyzeReq):
@@ -219,8 +229,12 @@ def download(url: str, height: str, title: str = "video"):
         ext, mime = "mp4", "video/mp4"
 
     is_yt = "youtube.com" in url or "youtu.be" in url
+    has_cookie = bool(dl_opts.get("cookiefile"))
     last_err = None
-    clients = YT_CLIENTS if is_yt else [None]
+    if is_yt:
+        clients = [None, "ios", "android", "tv_embedded"] if has_cookie else ["ios", "android", "tv_embedded"]
+    else:
+        clients = [None]
 
     for client in clients:
         try:
