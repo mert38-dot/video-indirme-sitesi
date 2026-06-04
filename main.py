@@ -150,7 +150,8 @@ def download(url: str, height: str, title: str = "video"):
         raise HTTPException(500, "Dosya oluşturulamadı.")
 
     filepath = str(files[0])
-    safe = re.sub(r"[^\w\s\-]", "", title)[:60].strip() or "video"
+    safe = re.sub(r"[^\x00-\x7F]", "", title)  # ASCII dışı karakterleri kaldır
+    safe = re.sub(r"[^\w\s\-]", "", safe)[:60].strip() or "video"
 
     def stream():
         with open(filepath, "rb") as f:
