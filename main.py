@@ -14,9 +14,9 @@ def cookie_file():
     global _COOKIE_FILE
     if _COOKIE_FILE and os.path.exists(_COOKIE_FILE):
         return _COOKIE_FILE
-    content = os.environ.get("YT_COOKIES", "")
+    content = os.environ.get("YT_COOKIES", "").replace("\r\n", "\n").replace("\r", "\n")
     if content:
-        f = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        f = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, newline="\n")
         f.write(content)
         f.close()
         _COOKIE_FILE = f.name
