@@ -190,7 +190,12 @@ def download(url: str, height: str, title: str = "video"):
         ext, mime = "m4a", "audio/mp4"
     else:
         h = int(height)
-        dl_opts = opts_for(url, format=f"bestvideo[height<={h}]+bestaudio/best[height<={h}]/best", outtmpl=out, merge_output_format="mp4")
+        dl_opts = opts_for(url,
+            format=f"bestvideo[height<={h}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={h}]+bestaudio/best[height<={h}]/best",
+            outtmpl=out,
+            merge_output_format="mp4",
+            postprocessors=[{"key":"FFmpegVideoConvertor","preferedformat":"mp4"}],
+        )
         ext, mime = "mp4", "video/mp4"
 
     try:
