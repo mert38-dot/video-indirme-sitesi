@@ -2,7 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import json, re
 import yt_dlp
 
-URL_RE = re.compile(r'^https?://.{3,}\..{2,}', re.I)
+URL_RE = re.compile(r'^https?://.+\..{2,}', re.I)
 
 
 def build(url):
