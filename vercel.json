@@ -1,12 +1,3 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/analyze.py", "use": "@vercel/python" },
-    { "src": "public/**", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/analyze", "dest": "/api/analyze.py" },
-    { "src": "/", "dest": "/public/index.html" },
-    { "src": "/(.*)", "dest": "/public/$1" }
-  ]
+  "outputDirectory": "public"
 }
