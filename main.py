@@ -82,14 +82,13 @@ def download(url: str, height: str, title: str = "video"):
     is_audio = height == "audio"
 
     if is_audio:
-        opts = ydl(format="bestaudio/best", outtmpl=out,
-                   postprocessors=[{"key":"FFmpegExtractAudio","preferredcodec":"mp3","preferredquality":"192"}])
-        ext, mime = "mp3", "audio/mpeg"
+        opts = ydl(format="bestaudio[ext=m4a]/bestaudio/best", outtmpl=out)
+        ext, mime = "m4a", "audio/mp4"
     else:
         h = int(height)
         opts = ydl(
-            format=f"bestvideo[height<={h}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={h}]+bestaudio/best[height<={h}]",
-            outtmpl=out, merge_output_format="mp4"
+            format=f"best[height<={h}][ext=mp4]/best[height<={h}]/best",
+            outtmpl=out,
         )
         ext, mime = "mp4", "video/mp4"
 
