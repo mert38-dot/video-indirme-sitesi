@@ -367,9 +367,12 @@ async function analyze(){
 }
 
 function render(d){
-  const fmts=d.formats.map((f,i)=>`
+  const videoFmts = d.formats.filter(f=>f.type==='video');
+  const audioFmts = d.formats.filter(f=>f.type==='audio');
+
+  const fmtHTML = f => `
     <a class="fmt" href="/download?url=${enc(d.url)}&height=${enc(f.height)}&title=${enc(d.title)}" download
-       onclick="startDl(event,${i},this)">
+       onclick="startDl(event,this)">
       <span class="fmt-left">
         <span class="fmt-label">${esc(f.label)}</span>
         <span class="badge ${f.type==='audio'?'ba':'bv'}">${f.type==='audio'?'SES':'VİDEO'}</span>
@@ -378,7 +381,24 @@ function render(d){
         <span class="fmt-size">~${esc(f.size)}</span>
         <span class="fmt-dl">↓</span>
       </span>
-    </a>`).join('');
+    </a>`;
+
+  // Eğer backend'den ses seçeneği gelmediyse manuel ekle
+  const hasAudio = audioFmts.length > 0;
+  const extraAudio = hasAudio ? '' : `
+    <a class="fmt fmt-audio-extra" href="/download?url=${enc(d.url)}&height=audio&title=${enc(d.title)}" download
+       onclick="startDl(event,this)">
+      <span class="fmt-left">
+        <span class="fmt-label">MP3 (Ses)</span>
+        <span class="badge ba">SES</span>
+      </span>
+      <span class="fmt-right">
+        <span class="fmt-size">~boyut değişken</span>
+        <span class="fmt-dl">↓</span>
+      </span>
+    </a>`;
+
+  const fmts = [...d.formats.map(fmtHTML), extraAudio].join('');
 
   $('result').innerHTML=`
     ${d.thumbnail?`<div class="thumb-wrap"><img class="thumb" src="${esc(d.thumbnail)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"><div class="thumb-overlay"></div></div>`:''}
@@ -388,7 +408,7 @@ function render(d){
     </div>`;
 }
 
-function startDl(e,i,el){
+function startDl(e,el){
   if(el.dataset.busy){e.preventDefault();return;}
   el.dataset.busy='1';
   const right=el.querySelector('.fmt-right');
