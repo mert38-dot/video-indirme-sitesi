@@ -29,13 +29,15 @@ class AnalyzeReq(BaseModel):
 
 def opts_for(url, **extra):
     """Platform'a göre yt-dlp seçeneklerini döner."""
-    base = {"quiet": True, "no_warnings": True, "socket_timeout": 30}
+    base = {
+        "quiet": True,
+        "no_warnings": True,
+        "socket_timeout": 30,
+        "format": "best[ext=mp4]/best",  # FFmpeg gerektirmeyen tek dosya format
+    }
     u = url.lower()
     if "twitter.com" in u or "x.com" in u or "twimg.com" in u:
         base["extractor_args"] = {"twitter": {"api": ["syndication"]}}
-    elif "youtube.com" in u or "youtu.be" in u:
-        pass  # cookie varsa default client yeterli
-    # TikTok ve Instagram: varsayılan ayarlar yeterli
     cf = cookie_file()
     if cf:
         base["cookiefile"] = cf
