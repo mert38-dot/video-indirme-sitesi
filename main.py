@@ -112,18 +112,38 @@ def index():
     return FileResponse("static/index.html")
 
 
+YT_CLIENTS = ["android", "ios", "tv_embedded", "web_creator", "web"]
+
+def extract_info_yt(url, base_opts):
+    """YouTube için birden fazla client dener, ilk çalışanı döner."""
+    last_err = None
+    for client in YT_CLIENTS:
+        try:
+            opts = {**base_opts, "extractor_args": {"youtube": {"player_client": [client]}}}
+            with yt_dlp.YoutubeDL(opts) as y:
+                return y.extract_info(url, download=False)
+        except Exception as e:
+            last_err = e
+            continue
+    raise last_err
+
 @app.post("/analyze")
 def analyze(req: AnalyzeReq):
     url = req.url.strip()
     if not url.startswith("http"):
         raise HTTPException(400, "https:// ile başlayan geçerli bir link girin.")
+
+    is_yt = "youtube.com" in url or "youtu.be" in url
+    base = opts_for(url)
+
     try:
-        with yt_dlp.YoutubeDL(opts_for(url)) as y:
-            info = y.extract_info(url, download=False)
+        if is_yt:
+            info = extract_info_yt(url, base)
+        else:
+            with yt_dlp.YoutubeDL(base) as y:
+                info = y.extract_info(url, download=False)
     except yt_dlp.utils.DownloadError as e:
         msg = str(e)
-        if "Sign in" in msg or "bot" in msg:
-            raise HTTPException(400, "Bu platform giriş gerektiriyor. Şu an desteklenemiyor.")
         if "Unsupported" in msg:
             raise HTTPException(400, "Bu platform desteklenmiyor.")
         raise HTTPException(400, msg[:300])
@@ -198,19 +218,26 @@ def download(url: str, height: str, title: str = "video"):
         )
         ext, mime = "mp4", "video/mp4"
 
-    try:
-        with yt_dlp.YoutubeDL(dl_opts) as y:
-            y.download([url])
-    except yt_dlp.utils.DownloadError as e:
-        # merge başarısız olduysa tek dosya ile tekrar dene
+    is_yt = "youtube.com" in url or "youtu.be" in url
+    last_err = None
+    clients = YT_CLIENTS if is_yt else [None]
+
+    for client in clients:
         try:
-            fallback = opts_for(url, format=f"best[height<={h if not is_audio else 9999}]/best", outtmpl=out)
-            with yt_dlp.YoutubeDL(fallback) as y:
+            if client:
+                run_opts = {**dl_opts, "extractor_args": {"youtube": {"player_client": [client]}}}
+            else:
+                run_opts = dl_opts
+            with yt_dlp.YoutubeDL(run_opts) as y:
                 y.download([url])
-        except Exception as e2:
-            raise HTTPException(500, str(e2)[:300])
-    except Exception as e:
-        raise HTTPException(500, str(e)[:300])
+            last_err = None
+            break
+        except Exception as e:
+            last_err = e
+            continue
+
+    if last_err:
+        raise HTTPException(500, str(last_err)[:300])
 
     files = [f for f in Path(tmp).iterdir() if f.is_file() and f.stat().st_size > 0]
     if not files:
